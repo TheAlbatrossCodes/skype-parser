@@ -1,5 +1,5 @@
-﻿# --- ML specific ---
-*.csv
+﻿# --- Project specific ---
+*.json
 
 
 # --- Python gitignore ---
