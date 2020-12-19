@@ -1,41 +1,55 @@
 import json
 import re
-from bs4 import BeautifulSoup
+import sys
+try:
+    from bs4 import BeautifulSoup
+except ImportError:
+    print('\nScript execution failed...')
+    print("\nYou need to install Beautiful Soup in order to run this script. You can do that using:\n")
+    print('\t\t pip install beautifulsoup4 ')
+    print('Exiting now...')
+    quit()
+
 
 def type_parser(msg_type):
+    # map message types to their true meaning, saving us useless strings/urls
     valid_msg_types = {
-                'Event/Call': '***---a call started/ended---***',
-                'Poll' : '***---created a poll---***',
-                'RichText/Media_Album' : '***---sent an album of images---***',
-                'RichText/Media_AudioMsg': '***---sent a voice message---***',
-                'RichText/Media_CallRecording': '***---sent a call recording---***',
-                'RichText/Media_Card': '***---sent a media card---***',
-                'RichText/Media_FlikMsg': '***---sent a moji---***',
-                'RichText/Media_GenericFile': '***---sent a file---***',
-                'RichText/Media_Video': '***s---ent a video message---***',
-                'RichText/UriObject': '***---sent a photo---***',
-                'RichText/ScheduledCallInvite':'***---scheduled a call---***',
-                'RichText/Location':'***---sent a location---***',
-                'RichText/Contacts':'***---sent a contact---***',
+                'Event/Call': '***A call started/ended***',
+                'Poll' : '***Created a poll***',
+                'RichText/Media_Album' : '***Sent an album of images***',
+                'RichText/Media_AudioMsg': '***Sent a voice message***',
+                'RichText/Media_CallRecording': '***Sent a call recording***',
+                'RichText/Media_Card': '***Sent a media card***',
+                'RichText/Media_FlikMsg': '***Sent a moji***',
+                'RichText/Media_GenericFile': '***Sent a file***',
+                'RichText/Media_Video': '***Sent a video message***',
+                'RichText/UriObject': '***Sent a photo***',
+                'RichText/ScheduledCallInvite':'***Scheduled a call***',
+                'RichText/Location':'***Sent a location***',
+                'RichText/Contacts':'***Sent a contact***',
                 }
     try:
         return valid_msg_types[msg_type]
     except KeyError:
-        return '***--- sent a ' + msg_type + '---***'
+        return '***Sent a ' + msg_type + '***'
 
 
 def content_parser(msg_content):
-    soup = BeautifulSoup(msg_content)
+    # use beautifulsoup to clean the weird xml stuff in the json
+    soup = BeautifulSoup(msg_content, 'lxml')
     return soup.get_text()
 
 
 def timestamp_parser(timestamp):
+    # skype timestamp has date and time up to the milisecond
+    # we'd like to seperate the two and create a better looking version
     date = timestamp.split('T')[0]
     time = timestamp.split('T')[1].split('.')[0]
     return str(date), str(time)
 
 
 def banner_constructor(display_name, person, export_date, export_time, timestamp):
+    # create a banner on the top of each exported file, showing the general metadata
     first_conv_date, first_conv_time = timestamp_parser(timestamps[0])
     last_conv_date, last_conv_time = timestamp_parser(timestamps[-1])
     conv_with = "Conversation with: {} ({})\n".format(display_name, person)
@@ -46,14 +60,17 @@ def banner_constructor(display_name, person, export_date, export_time, timestamp
     return conv_with + export_on + conv_from + conv_to + disclaimer
 
 
+# take the json file as input
+filename = sys.argv[-1]
+
 # open the skype json file
-with open('messages.json', encoding='utf-8') as f:
+with open(filename, encoding='utf-8') as f:
     main_file = json.load(f)
 
 # map from user's skype username to display name
-display_name = input('Your name should be displayed as: ')
+display_name = input('In the logs, your name should be displayed as: ')
 
-# find the user's skype username
+# find the user's skype username & general metadata
 user_id = main_file['userId'] 
 export_date, export_time = timestamp_parser(main_file['exportDate'])
 no_of_conversations = len(main_file['conversations'])
@@ -111,7 +128,7 @@ for person in ids:
             date.add(d)
             compiled_message +="\n----------Conversations on " + str(d) + "----------\n"    
         compiled_message += message_box[person][j] + '\n'
-    
+
     # get rid of the weirder skype XML
     parsed_content = content_parser(compiled_message)
     # display quotes better and have them make more sense
