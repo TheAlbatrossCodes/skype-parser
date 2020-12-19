@@ -1,6 +1,6 @@
 ﻿# --- Project specific ---
 *.json
-
+*.txt
 
 # --- Python gitignore ---
 # Byte-compiled / optimized / DLL files
