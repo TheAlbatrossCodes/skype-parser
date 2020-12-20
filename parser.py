@@ -4,12 +4,16 @@ try:
     beautifulsoup_imported = True
 except ImportError:
     beautifulsoup_imported = False
-    print('\nBeautifulSoup is not installed on your system...')
-    print('\nAs a result, the parsed files will NOT look desirable or pretty &')
-    print('\nwill have weird symbols etc. in them.')
-    print("\nYou can install BeautifulSoup using:\n")
-    print('\t\t pip install beautifulsoup4 ')
-    print('Continuing without it for now...')
+    import html
+    print("\nBeautifulSoup is not installed on your system...\n"
+            "We will attempt to parse your file as best as we can, " 
+            "but you will have to deal with repeating messages & "
+            "other inconsistencies. It will probably be fine, but "
+            "BeautifulSoup is a safer option.")
+    print("\nIt is thus heavily recommended that you install BeautifulSoup and run the script again")
+    print('\nYou can install BeautifuSoup using the folllowing command: ')
+    print('\n\t\t pip install beautifulsoup4\n')
+    print('Continuing without it for now...\n')
 
 def main():
     # take the json file as input
@@ -85,15 +89,24 @@ def main():
                 compiled_message +="\n----------Conversations on " + str(d) + "----------\n"    
             compiled_message += message_box[person][j] + '\n'
 
-        # get rid of the weirder skype XML
         if beautifulsoup_imported:
-            parsed_content = content_parser(compiled_message)
-        # display quotes better and have them make more sense
-        parsed_content = re.sub(r'\[[+-]?\d+(?:\.\d+)?\]', '\n\t*** Quoting the following message: ***\n\t', parsed_content)
-        parsed_content = re.sub(r'\<\<\<', '\t*** And responding with: ***\n\t', parsed_content)
+            # get rid of the weirder skype XML
+            pretty_parsed_content = content_parser(compiled_message)
+            write_to_file(export_file_name[person], pretty_parsed_content)
 
-        with open(export_file_name[person], 'w+', encoding='utf-8') as f:
-            f.write(parsed_content)
+        else:
+            # since no bs4, attempt to clear the XML using regex, but repeating messages are a problem
+            compiled_message = strip_tags(compiled_message)
+            write_to_file(export_file_name[person], compiled_message)
+
+    print("\nAll done!")
+
+
+
+def write_to_file(file_name, parsed_content):
+            with open(file_name, 'w+', encoding='utf-8') as f:
+                f.write(parsed_content)
+                print("Sucessfully parsed {}...".format(file_name))
 
 
 def type_parser(msg_type):
@@ -123,9 +136,27 @@ def content_parser(msg_content):
     if beautifulsoup_imported:
     # use beautifulsoup to clean the weird xml stuff in the json
         soup = BeautifulSoup(msg_content, 'lxml')
-        return soup.get_text()
+        text = soup.get_text()
+        text = pretty_quotes(text)
+        return text
     else:
         pass
+
+
+def strip_tags(text):
+    match = re.compile(r'<.*?>')
+    text = match.sub('', text)
+    text = html.unescape(text)
+    text = pretty_quotes(text)
+    return text
+
+def pretty_quotes(cleaned_text):
+    # display quotes better and have them make more sense
+    match = re.compile(r'\[[+-]?\d+(?:\.\d+)?\]')
+    cleaned_text= match.sub(r'\n\t*** Quoting the following message: ***\n\t', cleaned_text)
+    match = re.compile(r'\<\<\<')
+    cleaned_text = match.sub('\t*** And responding with: ***\n\t', cleaned_text)
+    return cleaned_text
 
 
 def timestamp_parser(timestamp):
@@ -146,6 +177,7 @@ def banner_constructor(display_name, person, export_date, export_time, timestamp
     conv_to = "                To: {}, at: {}\n".format(last_conv_date, last_conv_time)
     disclaimer = "***** All times are in GMT *****\n"
     return conv_with + export_on + conv_from + conv_to + disclaimer
+
 
 if __name__ == "__main__":
     main()
