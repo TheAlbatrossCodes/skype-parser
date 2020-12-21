@@ -1,30 +1,24 @@
-import json, re, sys
+import json, re, argparse
 try:
     from bs4 import BeautifulSoup
     beautifulsoup_imported = True
 except ImportError:
     beautifulsoup_imported = False
     import html
-    print("\nBeautifulSoup is not installed on your system...\n"
-            "We will attempt to parse your file as best as we can, " 
-            "but you will have to deal with repeating messages & "
-            "other inconsistencies. It will probably be fine, but "
-            "BeautifulSoup is a safer option.")
-    print("\nIt is thus heavily recommended that you install BeautifulSoup and run the script again")
-    print('\nYou can install BeautifuSoup using the folllowing command: ')
-    print('\n\t\t pip install beautifulsoup4\n')
-    print('Continuing without it for now...\n')
 
 def main():
-    # take the json file as input
-    filename = sys.argv[-1]
-
-    # open the skype json file
-    with open(filename, encoding='utf-8') as f:
-        main_file = json.load(f)
+    args = get_commandline_args()
+    # take the json file as input and open the skype json file
+    main_file = read_file(args.filename)
+   
+    if not beautifulsoup_imported:
+        print("\n-----WARNING----\nBeautifulSoup is not installed on "
+                "your system.\nIt is safer to use this script with "
+                "BeautifulSoup installed.\nYou can install BeautifuSoup  "
+                "using this command:\n\n\t\t pip install beautifulsoup4\n\n")
 
     # map from user's skype username to display name
-    display_name = input('In the logs, your name should be displayed as: ')
+    display_name = input('\nIn the logs, your name should be displayed as: ')
 
     # find the user's skype username & general metadata
     user_id = main_file['userId'] 
@@ -51,7 +45,8 @@ def main():
 
         messages_with_id[ids[i]] = main_file['conversations'][i]['MessageList']
 
-
+    if args.choose:
+        ids = id_selector(ids)
     # extract the good info from the messages
     message_box = {}
     for i in ids:
@@ -102,6 +97,19 @@ def main():
     print("\nAll done!")
 
 
+def get_commandline_args():
+    command = argparse.ArgumentParser("parser")
+    command.add_argument('filename', help='The path/name to the Skype json file you want to parse')
+    command.add_argument('-c', '--choose',action='store_true', help="Use this flag to choose which convos you'd like to parse")
+    args = command.parse_args()
+    return args
+
+
+def read_file(filename):
+    with open(filename, encoding='utf-8') as f:
+        main_file = json.load(f)
+        # exception handling goes here
+    return main_file
 
 def write_to_file(file_name, parsed_content):
             with open(file_name, 'w+', encoding='utf-8') as f:
@@ -133,14 +141,10 @@ def type_parser(msg_type):
 
 
 def content_parser(msg_content):
-    if beautifulsoup_imported:
-    # use beautifulsoup to clean the weird xml stuff in the json
-        soup = BeautifulSoup(msg_content, 'lxml')
-        text = soup.get_text()
-        text = pretty_quotes(text)
-        return text
-    else:
-        pass
+    soup = BeautifulSoup(msg_content, 'lxml')
+    text = soup.get_text()
+    text = pretty_quotes(text)
+    return text
 
 
 def strip_tags(text):
@@ -165,6 +169,22 @@ def timestamp_parser(timestamp):
     date = timestamp.split('T')[0]
     time = timestamp.split('T')[1].split('.')[0]
     return str(date), str(time)
+
+def id_selector(ids):
+    print("You have conversations with the following ids: ")
+    valid_selections = {}
+    for i in range(len(ids)):
+        print('\t{} ----> {}'.format(i+1, ids[i]))
+        valid_selections[str(i+1)] = ids[i]
+
+    user_selection = input('Enter the number associated with the chats you want to export, separated by a space: ')
+    selected_ids = set(user_selection.split())
+        
+    while not selected_ids.issubset(set(valid_selections.keys())):
+        user_selection = input('Please enter valid numbers, separated by a space: ')
+        selected_ids = set(user_selection.split())
+
+    return [valid_selections[j] for j in selected_ids]
 
 
 def banner_constructor(display_name, person, export_date, export_time, timestamp):
