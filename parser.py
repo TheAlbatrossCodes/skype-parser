@@ -1,4 +1,4 @@
-import json, re, argparse
+import json, re, argparse, tarfile
 try:
     from bs4 import BeautifulSoup
     beautifulsoup_imported = True
@@ -9,19 +9,19 @@ except ImportError:
 def main():
     args = get_commandline_args()
     # take the json file as input and open the skype json file
-    main_file = read_file(args.filename)
+    main_file = read_file(args.filename) if not args.tar else read_tarfile(args.filename)
    
     if not beautifulsoup_imported:
         print("\n{:-^50}\n".format('\nWARNING'))
         print("BeautifulSoup is not installed onyour system. "
-                "\nIt is safer to use this script with BeautifulSoup "
-                "installed.\nYou can install BeautifuSoup using this "
-                "command:\n\n\t\t pip install beautifulsoup4\n\n")
+              "\nIt is safer to use this script with BeautifulSoup "
+              "installed.\nYou can install BeautifuSoup using this "
+              "command:\n\n\t\t pip install beautifulsoup4\n\n")
 
     # map from user's skype username to display name
-    display_name = input('\nIn the logs, your name should be displayed as: ')
-    while len(display_name.split()) == 0:
-        display_name = input('\nPlease enter how you want your name to be displayed: ')
+    user_display_name = input('\nIn the logs, your name should be displayed as: ')
+    while len(user_display_name.split()) == 0:
+        user_display_name = input('\nPlease enter how you want your name to be displayed: ')
 
     # find the user's skype username & general metadata
     user_id = main_file['userId'] 
@@ -30,7 +30,7 @@ def main():
 
     # store the usernames of everyone the user has chatted with and map to their prettier display name
     ids = []
-    id_to_display_name = {user_id:str(display_name)}  # for now map your username to display name
+    id_to_display_name = {user_id:str(user_display_name)}  # for now map your username to display name
     export_file_name = {}  # the name we use for the chat log file
     messages_with_id = {}
 
@@ -48,8 +48,10 @@ def main():
 
         messages_with_id[ids[i]] = main_file['conversations'][i]['MessageList']
 
+    # if program is run with --choose flag, just iter through the ids selected by the user
     if args.choose:
         ids = id_selector(ids)
+
     # extract the good info from the messages
     message_box = {}
     for i in ids:
@@ -81,10 +83,10 @@ def main():
         compiled_message = banner
         date = set([])
         for j in timestamps:
-            d = j.split('T')[0]
+            d, _ = timestamp_parser(j)
             if d not in date:
                 date.add(d)
-                compiled_message +="\n----------Conversations on " + str(d) + "----------\n"    
+                compiled_message +="\n---------- Conversations on " + str(d) + " ----------\n"    
             compiled_message += message_box[person][j] + '\n'
 
         if beautifulsoup_imported:
@@ -104,6 +106,7 @@ def get_commandline_args():
     command = argparse.ArgumentParser("parser")
     command.add_argument('filename', help='The path/name to the Skype json file you want to parse')
     command.add_argument('-c', '--choose',action='store_true', help="Use this flag to choose which convos you'd like to parse")
+    command.add_argument('-t', '--tar', action='store_true', help='Use this flag to feed in a tar file, instead of a json file (at your own risk).')
     args = command.parse_args()
     return args
 
@@ -113,6 +116,16 @@ def read_file(filename):
         main_file = json.load(f)
         # exception handling goes here
     return main_file
+
+
+def read_tarfile(filename):
+    # needs a better implementation, would like to be able to search content of tar and just take .json out
+    with tarfile.open(filename) as f:
+        tar_contents = f.getnames()
+        main_file = f.extractfile(f.getmember(tar_contents[0]))
+        main_file = json.load(main_file)
+        return main_file
+
 
 def write_to_file(file_name, parsed_content):
             with open(file_name, 'w+', encoding='utf-8') as f:
@@ -157,6 +170,7 @@ def strip_tags(text):
     text = pretty_quotes(text)
     return text
 
+
 def pretty_quotes(cleaned_text):
     # display quotes better and have them make more sense
     match = re.compile(r'\[[+-]?\d+(?:\.\d+)?\]')
@@ -172,6 +186,7 @@ def timestamp_parser(timestamp):
     date = timestamp.split('T')[0]
     time = timestamp.split('T')[1].split('.')[0]
     return str(date), str(time)
+
 
 def id_selector(ids):
     print("You have conversations with the following ids: ")
