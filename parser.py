@@ -12,13 +12,16 @@ def main():
     main_file = read_file(args.filename)
    
     if not beautifulsoup_imported:
-        print("\n-----WARNING----\nBeautifulSoup is not installed on "
-                "your system.\nIt is safer to use this script with "
-                "BeautifulSoup installed.\nYou can install BeautifuSoup  "
-                "using this command:\n\n\t\t pip install beautifulsoup4\n\n")
+        print("\n{:-^50}\n".format('\nWARNING'))
+        print("BeautifulSoup is not installed onyour system. "
+                "\nIt is safer to use this script with BeautifulSoup "
+                "installed.\nYou can install BeautifuSoup using this "
+                "command:\n\n\t\t pip install beautifulsoup4\n\n")
 
     # map from user's skype username to display name
     display_name = input('\nIn the logs, your name should be displayed as: ')
+    while len(display_name.split()) == 0:
+        display_name = input('\nPlease enter how you want your name to be displayed: ')
 
     # find the user's skype username & general metadata
     user_id = main_file['userId'] 
@@ -180,7 +183,7 @@ def id_selector(ids):
     user_selection = input('Enter the number associated with the chats you want to export, separated by a space: ')
     selected_ids = set(user_selection.split())
         
-    while not selected_ids.issubset(set(valid_selections.keys())):
+    while not selected_ids.issubset(set(valid_selections.keys())) or len(selected_ids) == 0:
         user_selection = input('Please enter valid numbers, separated by a space: ')
         selected_ids = set(user_selection.split())
 
