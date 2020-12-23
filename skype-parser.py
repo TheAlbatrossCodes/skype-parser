@@ -112,7 +112,7 @@ def main():
 
 
 def get_commandline_args():
-    command = argparse.ArgumentParser("parser")
+    command = argparse.ArgumentParser("skype-parser")
     command.add_argument('filename',
                          help='The path/name to the Skype json file you want to parse')
     command.add_argument('-c', '--choose',

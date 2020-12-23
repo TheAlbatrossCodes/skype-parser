@@ -1,65 +1,73 @@
 # Skype History Parser
-A simple script to create prettier text files from your Skype chat history.
 
-- [How do I just get it to work?](#how-do-i-just-get-it-to-work)
-- [Detailed Description](#detailed-description)
-  - [Requirements](#requirements)
-  - [How do I even export my skype chat history?](#how-do-i-even-export-my-skype-chat-history)
-- [TO DO](#to-do)
-# How do I just get it to work?
+`skype-parser` is a simple script to create pretty text files from your Skype chat history. This tool can either take in the `.tar` file or the `.json` file given to you by Skype and give you back your entire chat history in `.txt` format (beautifully formatted, too!).
+
+## How do I just get this thing to work?
+
 Download `parser.py` and invoke it like so:
+
+- If you have a `.tar` file:
+
+```bash
+python3 parser.py -t your_skype_username_export.tar
+```
+
+where `your_skype_username_export.tar` is the `.tar` file your recieved from Skype upon requesting a conversation export.  
+
+- If you have a `.json` file:
+
 ```bash
 python3 parser.py messages.json
 ```
-Where `messages.json` is the extracted json file you that you get from Skype. This script will create .txt files containing every chat with every user.
 
-
+Where `messages.json` is the extracted `.json` file you that contains your conversation history.  
 
 If you are not sure how you can get your export from Skype, read the [this section](#how-do-i-export-my-skype-chat-history).
 
-# Detailed Description
+## Detailed Description
 
-Skype JSON Parser is a simple python script that makes preserving chat history from Skype easier.
- 
-Skype tends be a niche choice for text messages, but for those of who you use it and would like to keep a chat log in pliantext form, this is the tool for you.
+skype-parser is a simple python script that makes preserving chat history from Skype easier.
 
-Skype's own parser is quite frankly, terrible. It's slow, it produces an ugly HTML that does not even attempt to parse URLS, quotes, emojis, etc. and as I said, it's generally terrible.
+Skype tends be a niche choice for text chatting, but for those of you who you use it and would like to keep a chat log in pliin-text form, this is *the* tool to get the job done.
 
-This tool will take the JSON file given to you by Skype, and creates .txt files containing every chat with every user.
+Skype's own parser is quite frankly, terrible. It produces an ugly HTML that is difficult to navigate and is riddled with unparsed XML.
+
+This tool will take the tar/JSON file given to you by Skype, and creates .txt files containing every chat with every user.
 
 Basic usage:
+
 ```bash
-python3 parser.py [-h] [-c] filename
+skype-parser [-h] [-c] [-t] filename
 
 positional arguments:
-  filename      The name of the Skype json file you want to parse
+  filename      The path/name to the Skype json/tar file you want to parse
 
 optional arguments:
   -h, --help    show this help message and exit
-  -c, --choose  Use this flag to choose which convos you want to parse
+  -t, --tar     Use this flag to feed in a .tar file (at your own risk)
+  -c, --choose  Use this flag to choose which convos you'd like to parse
 ```
 
-If you invoke the script with `-c` of `--choose` flag, the script will let you choose between the conversations you'd like to export.
+If you invoke the script **without** the `t` or `--tar` argument, `filename` must be the skype `.json` file.
 
+If you invoke the script **with** the `-t` or `--tar` argument, `filename` must be the `.tar` file that you get from skype.
+
+If you invoke the script with `-c` or `--choose`, it will let you choose between the conversations you'd like to export.
 
 ## Requirements
 
- - python version 3.5 and above
+- python version 3.5 and above
 
-- beautifulsoup4 (optional, heavily recommended though)
-
-The script will work without beautiful soup as well, but the parsed files will be much weirder/difficult to read, you'll encounter repeating messages, weird symbols etc. 
+- beautifulsoup4 (optional, but recommended)
 
 ## How do I even export my skype chat history?
+
 Follow the instructions [here](https://support.skype.com/en/faq/FA34894/how-do-i-export-my-skype-files-and-chat-history).
 
 Keep in mind that this tool parses your conversations, not your files; so be careful what you export.
 
-Once you have downloaded your exported conversations, you need to untar the downloaded file. This can be done using the tar utility on Linux/Mac or using a program like 7zip on Windows.
+Once you have downloaded your exported conversations (which is usually in `.tar` format), you can either to untar the downloaded file and use this tool to parse the resulting `.json` file, or you can take the `.tar` file itself and feed it into the script. Either way *should* work.
 
-The resulting JSON file (usually named 'messages.json' is what this script needs.
+## TO DO
 
-# TO DO
-
-- Add untar capability.
-
+- Figure out whether we're being a fed a `.json` file or a tarball.
