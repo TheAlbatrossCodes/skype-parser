@@ -20,7 +20,7 @@ where `your_skype_username_export.tar` is the `.tar` file your recieved from Sky
 python3 parser.py messages.json
 ```
 
-Where `messages.json` is the extracted `.json` file you that contains your conversation history.  
+where `messages.json` is the extracted `.json` file you that contains your conversation history.  
 
 If you are not sure how you can get your export from Skype, read the [this section](#how-do-i-export-my-skype-chat-history).
 

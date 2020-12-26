@@ -1,7 +1,7 @@
-import json
-import re
 import argparse
 import tarfile
+import json
+import re
 
 try:
     from bs4 import BeautifulSoup
@@ -19,11 +19,12 @@ def main():
         print("\n--- WARNING ---\n")
         print("BeautifulSoup is not installed on your system. "
               "\nIt is safer to use this script with BeautifulSoup "
-              "installed.\nYou can install BeautifuSoup using this "
+              "installed.\nYou can install BeautifulSoup using this "
               "command:\n\n\t\t pip install beautifulsoup4\n\n")
 
     # map from user's skype username to display name
     user_display_name = input('\nIn the logs, your name should be displayed as: ')
+    
     while len(user_display_name.split()) == 0:
         user_display_name = input('\nPlease enter how you want your name to be displayed: ')
 
@@ -90,7 +91,7 @@ def main():
         display_name = str(id_to_display_name[person])
         banner = banner_constructor(display_name, person, export_date, export_time, timestamps)
         compiled_message = banner
-        date = set([])
+        date = set()
         for j in timestamps:
             d, _ = timestamp_parser(j)
             if d not in date:
@@ -148,59 +149,6 @@ def read_tarfile(filename):
         return main_file
 
 
-def write_to_file(file_name, parsed_content):
-    with open(file_name, 'w+', encoding='utf-8') as f:
-        f.write(parsed_content)
-        print("Sucessfully parsed {}...".format(file_name))
-
-
-def type_parser(msg_type):
-    # map message types to their true meaning, saving us useless strings/urls
-    valid_msg_types = {
-                'Event/Call': '***A call started/ended***',
-                'Poll' : '***Created a poll***',
-                'RichText/Media_Album' : '***Sent an album of images***',
-                'RichText/Media_AudioMsg': '***Sent a voice message***',
-                'RichText/Media_CallRecording': '***Sent a call recording***',
-                'RichText/Media_Card': '***Sent a media card***',
-                'RichText/Media_FlikMsg': '***Sent a moji***',
-                'RichText/Media_GenericFile': '***Sent a file***',
-                'RichText/Media_Video': '***Sent a video message***',
-                'RichText/UriObject': '***Sent a photo***',
-                'RichText/ScheduledCallInvite':'***Scheduled a call***',
-                'RichText/Location':'***Sent a location***',
-                'RichText/Contacts':'***Sent a contact***',
-                }
-    try:
-        return valid_msg_types[msg_type]
-    except KeyError:
-        return '***Sent a ' + msg_type + '***'
-
-
-def content_parser(msg_content):
-    soup = BeautifulSoup(msg_content, 'lxml')
-    text = soup.get_text()
-    text = pretty_quotes(text)
-    return text
-
-
-def tag_stripper(text):
-    match = re.compile(r'<.*?>')
-    text = match.sub('', text)
-    text = html.unescape(text)
-    text = pretty_quotes(text)
-    return text
-
-
-def pretty_quotes(cleaned_text):
-    # display quotes better and have them make more sense
-    match = re.compile(r'\[[+-]?\d+(?:\.\d+)?\]')
-    cleaned_text= match.sub(r'\n\t*** Quoting the following message: ***\n\t', cleaned_text)
-    match = re.compile(r'\<\<\<')
-    cleaned_text = match.sub('\t*** And responding with: ***\n\t', cleaned_text)
-    return cleaned_text
-
-
 def timestamp_parser(timestamp):
     # skype timestamp has date and time up to the milisecond
     # we'd like to seperate the two and create a better looking version
@@ -227,16 +175,73 @@ def id_selector(ids):
     return [valid_selections[j] for j in selected_ids]
 
 
+def type_parser(msg_type):
+    # map message types to their true meaning, saving us useless strings/urls
+    valid_msg_types = {
+                'Event/Call': '***A call started/ended***',
+                'Poll' : '***Created a poll***',
+                'RichText/Media_Album' : '***Sent an album of images***',
+                'RichText/Media_AudioMsg': '***Sent a voice message***',
+                'RichText/Media_CallRecording': '***Sent a call recording***',
+                'RichText/Media_Card': '***Sent a media card***',
+                'RichText/Media_FlikMsg': '***Sent a moji***',
+                'RichText/Media_GenericFile': '***Sent a file***',
+                'RichText/Media_Video': '***Sent a video message***',
+                'RichText/UriObject': '***Sent a photo***',
+                'RichText/ScheduledCallInvite':'***Scheduled a call***',
+                'RichText/Location':'***Sent a location***',
+                'RichText/Contacts':'***Sent a contact***',
+                }
+    try:
+        return valid_msg_types[msg_type]
+    except KeyError:
+        return '***Sent a ' + msg_type + '***'
+
+
 def banner_constructor(display_name, person, export_date, export_time, timestamp):
     # create a banner on the top of each exported file, showing the general metadata
     first_conv_date, first_conv_time = timestamp_parser(timestamp[0])
     last_conv_date, last_conv_time = timestamp_parser(timestamp[-1])
-    conv_with = "Conversation with: {} ({})\n".format(display_name, person)
-    export_on = "Exported on: {}, at: {}\n".format(export_date, export_time)
-    conv_from = "Conversations From: {}, at: {}\n".format(first_conv_date, first_conv_time)
-    conv_to = "                To: {}, at: {}\n".format(last_conv_date, last_conv_time)
-    disclaimer = "***** All times are in GMT *****\n"
-    return conv_with + export_on + conv_from + conv_to + disclaimer
+    
+    banner = ("Conversation with: {} ({})\n"
+                "Exported on: {}, at: {}\n"
+                "Conversations From: {}, at: {}\n"
+                "                To: {}, at: {}\n"
+                "***** All times are in UTC *****\n".format(display_name, person,
+                                                             export_date, export_time,
+                                                             first_conv_date, first_conv_time,
+                                                             last_conv_date, last_conv_time))
+    return banner
+
+
+def content_parser(msg_content):
+    soup = BeautifulSoup(msg_content, 'lxml')
+    text = soup.get_text()
+    text = pretty_quotes(text)
+    return text
+
+
+def tag_stripper(text):
+    match = re.compile(r'<.*?>')
+    text = match.sub('', text)
+    text = html.unescape(text)
+    text = pretty_quotes(text)
+    return text
+
+
+def pretty_quotes(cleaned_text):
+    # display quotes better and have them make more sense
+    match = re.compile(r'\[[+-]?\d+(?:\.\d+)?\]')
+    cleaned_text= match.sub(r'\n\t*** Quoting the following message: ***\n\t', cleaned_text)
+    match = re.compile(r'\<\<\<')
+    cleaned_text = match.sub('\t*** And responding with: ***\n\t', cleaned_text)
+    return cleaned_text
+
+
+def write_to_file(file_name, parsed_content):
+    with open(file_name, 'w+', encoding='utf-8') as f:
+        f.write(parsed_content)
+        print("Sucessfully parsed {}...".format(file_name))
 
 
 if __name__ == "__main__":
